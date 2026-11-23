@@ -133,6 +133,8 @@
     .mailform button { justify-self: start; cursor: pointer; font: inherit; font-weight: 500; font-size: .95rem; }
     .hp { position: absolute; left: -9999px; }
     .sent { color: var(--accent) !important; }
+    .sent.err { color: #e08a8a !important; }
+    .mailform button:disabled { opacity: .6; cursor: wait; }
     .contact .btns { margin-top: 28px; }
 
     footer { border-top: 1px solid var(--rule); padding: 28px 0 44px; color: var(--muted); font-size: .88rem; }
@@ -246,18 +248,18 @@
       <h2>Kontakt</h2>
       <p>Fragen zu meinen Projekten oder eine Anfrage? Schreib mir direkt hier.</p>
 
-      <form class="mailform" action="https://formsubmit.co/pauljosefs@gmail.com" method="POST">
-        <input type="hidden" name="_subject" value="Neue Nachricht über pxxl1.github.io">
-        <input type="hidden" name="_template" value="table">
-        <input type="hidden" name="_next" value="https://pxxl1.github.io/?gesendet=1#kontakt">
-        <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off">
+      <form class="mailform" id="mailform" action="https://api.web3forms.com/submit" method="POST">
+        <input type="hidden" name="access_key" value="0f9d6999-4482-40bf-b628-bf0a68374e9e">
+        <input type="hidden" name="subject" value="Neue Nachricht über pxxl1.github.io">
+        <input type="hidden" name="from_name" value="Website pxxl1.github.io">
+        <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
         <div class="row2">
           <label>Name<input type="text" name="name" required autocomplete="name"></label>
           <label>E-Mail<input type="email" name="email" required autocomplete="email"></label>
         </div>
         <label>Nachricht<textarea name="message" rows="5" required></textarea></label>
         <button class="btn main" type="submit">Nachricht senden</button>
-        <p class="sent" id="sent" hidden>Danke, deine Nachricht ist angekommen.</p>
+        <p class="sent" id="sent" role="status" hidden></p>
       </form>
 
       <div class="btns">
@@ -280,7 +282,32 @@
     }
     window.addEventListener('scroll', mark, { passive: true });
     mark();
-    if (new URLSearchParams(location.search).has('gesendet')) document.getElementById('sent').hidden = false;
+
+    // Formular per Web3Forms senden, ohne die Seite zu verlassen
+    const form = document.getElementById('mailform');
+    const msg = document.getElementById('sent');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button');
+      btn.disabled = true; btn.textContent = 'Wird gesendet …';
+      msg.hidden = true; msg.classList.remove('err');
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: new FormData(form)
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Fehler');
+        form.reset();
+        msg.textContent = 'Danke, deine Nachricht ist angekommen.';
+      } catch (err) {
+        msg.textContent = 'Senden hat nicht geklappt. Bitte schreib mir direkt an pauljosefs@gmail.com.';
+        msg.classList.add('err');
+      }
+      msg.hidden = false;
+      btn.disabled = false; btn.textContent = 'Nachricht senden';
+    });
   </script>
 </body>
 </html>
